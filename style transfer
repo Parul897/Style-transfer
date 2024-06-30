@@ -1,0 +1,137 @@
+pip install streamlit
+pip install tensorflow
+!pip install opencv-python
+!pip install mediapipe
+import cv2
+import numpy as np
+import tensorflow as tf
+import tensorflow_hub as hub
+
+
+def transfer_style(content_image, style_image, model_path):
+ size_threshold = 2000
+    resizing_shape = (1000,1000)
+    content_shape = content_image.shape
+    style_shape = style_image.shape
+
+    resize_content = True if content_shape[0] > size_threshold or content_shape[1] > size_threshold else False
+    resize_style = True if style_shape[0] > size_threshold or style_shape[1] > size_threshold else False
+
+    if resize_content is True:
+        print("Content Image bigger than (2000x2000), resizing to (1000x1000)")
+        content_image = cv2.resize(content_image,(resizing_shape[0],resizing_shape[1]))
+        content_image = np.array(content_image)
+
+    if resize_style is True :
+        print("Style Image bigger than (2000x2000), resizing to (1000x1000)")
+        style_image = cv2.resize(style_image,(resizing_shape[0],resizing_shape[1]))
+        style_image = np.array(style_image)
+print("Resizing and Normalizing images...")
+    # Convert to float32 numpy array, add batch dimension, and normalize to range [0, 1]. Example using numpy:
+    content_image = content_image.astype(np.float32)[np.newaxis, ...] / 255.
+    style_image = style_image.astype(np.float32)[np.newaxis, ...] / 255.
+
+    # Optionally resize the images. It is recommended that the style image is about
+    # 256 pixels (this size was used when training the style transfer network).
+    # The content image can be any size.
+    style_image = tf.image.resize(style_image, (256, 256))
+
+    print("Loading pre-trained model...")
+    # The hub.load() loads any TF Hub model
+    hub_module = hub.load(model_path)
+
+    print("Generating stylized image now...wait a minute")
+    # Stylize image.
+    outputs = hub_module(tf.constant(content_image), tf.constant(style_image))
+    stylized_image = outputs[0]
+
+    # reshape the stylized image
+    stylized_image = np.array(stylized_image)
+    stylized_image = stylized_image.reshape(
+        stylized_image.shape[1], stylized_image.shape[2], stylized_image.shape[3])
+
+    print("Stylizing completed...")
+    return stylized_image
+import functools
+import os
+from matplotlib import gridspec
+import matplotlib.pylab as plt
+import numpy as np
+import tensorflow as tf
+import tensorflow_hub as hub
+
+print("TF Version: ", tf.__version__)
+print("TF Hub version: ", hub.__version__)
+print("Eager mode enabled: ", tf.executing_eagerly())
+print("GPU available: ", tf.config.list_physical_devices('GPU'))
+
+content_image_path = "/content/code.jpg"
+style_image_path = "/content/STRAY KIDS REACTION.jpg"
+
+# Load content and style images (see example in the attached colab).
+content_image = plt.imread(content_image_path)
+style_image = plt.imread(style_image_path)
+
+# saving the original images in another var,so that we can compare at the end.
+content_image_ = plt.imread(content_image_path)
+style_image_ = plt.imread(style_image_path)
+
+plt.figure(figsize=(15,15))
+
+# displaying the content image
+plt.subplot(1,2,1)
+plt.imshow(content_image)
+plt.title("Content Image")
+
+# displaying the style image
+plt.subplot(1,2,2)
+plt.imshow(style_image)
+plt.title("Style Image")
+
+plt.show()
+# Convert to float32 numpy array, add batch dimension, and normalize to range [0, 1]. Example using numpy:
+content_image = content_image.astype(np.float32)[np.newaxis, ...] / 255.
+style_image = style_image.astype(np.float32)[np.newaxis, ...] / 255.
+# Optionally resize the images. It is recommended that the style image is about
+# 256 pixels (this size was used when training the style transfer network).
+# The content image can be any size.
+style_image = tf.image.resize(style_image, (256, 256))
+
+hub_module = hub.load('https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-256/2')
+outputs = hub_module(tf.constant(content_image), tf.constant(style_image))
+stylized_image = outputs[0]
+# shape of stylized_image
+stylized_image.shape
+stylized_image = np.array(stylized_image)
+
+# reshape the stylized image
+stylized_image = stylized_image.reshape(stylized_image.shape[1],stylized_image.shape[2],stylized_image.shape[3])
+
+stylized_image.shape
+
+plt.figure(figsize=(25,30))
+
+# displaying the content image
+plt.subplot(1,3,1)
+plt.imshow(content_image_)
+plt.title("Content Image")
+plt.tick_params(left = False, right = False , labelleft = False ,
+                labelbottom = False, bottom = False)
+
+# displaying the style image
+plt.subplot(1,3,2)
+plt.imshow(style_image_)
+plt.title("Style Image")
+plt.tick_params(left = False, right = False , labelleft = False ,
+                labelbottom = False, bottom = False)
+
+# displaying the stylized image
+plt.subplot(1,3,3)
+plt.imshow(stylized_image)
+plt.title("Generated Image")
+plt.tick_params(left = False, right = False , labelleft = False ,
+                labelbottom = False, bottom = False)
+
+plt.savefig("einstien_monalisa.png",transparent=True)
+plt.show()
+
